@@ -12,14 +12,37 @@ namespace SecretEncrypter
     {
         public static void Main(string[] args)
         {
+            Console.Write("Public key (Or leave empty and generates new pair):");
+            var publicKeyString = Console.ReadLine();
+
+            RSACryptoServiceProvider cryptoServiceProvider;
+
+            if (string.IsNullOrEmpty(publicKeyString))
+            {
+                // New CSP with a new 2048 bit rsa key pair.
+                cryptoServiceProvider = new RSACryptoServiceProvider(2048);
+
+                var privateKey = cryptoServiceProvider.ExportParameters(true);
+                var publicKey = cryptoServiceProvider.ExportParameters(false);
+
+                Console.WriteLine();
+                Console.WriteLine("Private key: " + RsaParameterToString(privateKey));
+                Console.WriteLine();
+                Console.WriteLine("Public key: " + RsaParameterToString(publicKey));
+                Console.WriteLine();
+            }
+            else
+            {
+                var sr = new StringReader(publicKeyString);
+                var xs = new System.Xml.Serialization.XmlSerializer(typeof(RSAParameters));
+                var publicKey = (RSAParameters)xs.Deserialize(sr);
+
+                cryptoServiceProvider = new RSACryptoServiceProvider();
+                cryptoServiceProvider.ImportParameters(publicKey);
+            }
+
             Console.Write("Path to the json file: ");
             var path = Console.ReadLine();
-
-            // New CSP with a new 2048 bit rsa key pair.
-            var cryptoServiceProvider = new RSACryptoServiceProvider(2048);
-
-            var privateKey = cryptoServiceProvider.ExportParameters(true);
-            var pubKey = cryptoServiceProvider.ExportParameters(false);
 
             Console.WriteLine("Encrypting secrets...");
 
@@ -45,6 +68,14 @@ namespace SecretEncrypter
 
             Console.WriteLine("Press any key to continue...");
             Console.ReadKey();
+        }
+
+        private static string RsaParameterToString(RSAParameters rsaParam)
+        {
+            var sw = new StringWriter();
+            var xs = new System.Xml.Serialization.XmlSerializer(typeof(RSAParameters));
+            xs.Serialize(sw, rsaParam);
+            return sw.ToString();
         }
     }
 }
